@@ -1,0 +1,37 @@
+pipeline {
+    agent any
+    options {
+        // 禁止同时运行多个流水线
+        disableConcurrentBuilds()
+    }
+    environment {
+        //多分支的流水线使用，获取当前Job的名字
+        PROJECT_NAME = sh(script: 'echo ${JOB_NAME%/*}', returnStdout: true).trim()
+
+    }
+    stages {
+        stage("编译代码") {
+            parallel {
+                stage('编译PC端代码') {
+                    steps {
+                        sh 'cd source/pc && npm install && npm run build'
+                    }
+                stage('编译手机端代码') {
+                    steps {
+                        sh 'cd source/mb && npm install && npm run build'
+                    }
+                }
+            }
+        }
+
+        stage('打印消息') {
+            steps{
+                echo "${PROJECT_NAME}"
+            }
+        }
+    }  
+}
+
+
+
+

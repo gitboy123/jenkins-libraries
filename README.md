@@ -13,6 +13,8 @@ Warning: 本文不是面对初学者的,如果你看不懂pipeline,那我也没�
 
 共享库的最原始的用法就是解决代码冗余的问题的,那么我们来看一个比较官方的用法
 
+文中的所有内容均在: https://github.com/jinyunboss/jenkins-libraries
+
 ---
 
 ## stage("配置共享库")
@@ -407,6 +409,81 @@ run(this)
 - 运行 dev 分支
 
 图15
+
+
+
+### stage("意外发现")
+
+按照官方的 `load` 函数的示例,加载其他groovy文件的方式就是上面的样子.
+但是,仔细想了想,官方的给的例子是相当于调用函数,所以要有`def`和`return this`.
+那我如果直接把文件内容拿过来执行呢?
+结果发现直接在文件中写完整的pipeline,然后直接执行也是可以的.
+
+例子的话,参考: jenkins-jenkinsfile/jenkins.lotbrick.com/master
+
+- Jenkinsfile
+
+```
+@Library('lotbrick') _
+run(this)
+```
+
+- run.groovy
+
+```
+
+def call(params){
+
+    // 定义jenkinsfile的路径
+    def jenkinsfile_dir = "/data/jenkins-jenkinsfile/"
+
+    node {
+        // 加载Jenkinsfile的groovy文件,例如:jenkins.lotbrick.com/master
+        def jenkinsfile = load("${jenkinsfile_dir}/${params.env.JOB_NAME}")
+        // 直接执行文件的内容                
+        jenkinsfile
+    }
+}
+```
+
+- jenkins.lotbrick.com/master
+
+```
+pipeline {
+    agent any
+    options {
+        // 禁止同时运行多个流水线
+        disableConcurrentBuilds()
+    }
+    environment {
+        //多分支的流水线使用，获取当前Job的名字
+        PROJECT_NAME = sh(script: 'echo ${JOB_NAME%/*}', returnStdout: true).trim()
+
+    }
+    stages {
+        stage("并行执行") {
+            parallel {
+                stage('并行执行1') {
+                    steps {
+                        sh 'echo '这是并行执行 1 的步骤''
+                    }
+                stage('并行执行2') {
+                    steps {
+                        sh 'echo '这是并行执行 2 的步骤''
+                    }
+                }
+            }
+        }
+
+        stage('打印消息') {
+            steps{
+                echo "${PROJECT_NAME}"
+            }
+        }
+    }  
+}
+
+```
 
 
 --- 

@@ -1,0 +1,19 @@
+node {
+    env.PROJECT_NAME = sh(script: 'echo ${JOB_NAME%/*}', returnStdout: true).trim()
+
+    stage("编译代码") {
+        parallel (
+            '编译PC端代码': {
+                sh 'cd source/pc && npm install && npm run build'
+            },
+            '编译手机端代码': {
+                sh 'cd source/mb && npm install && npm run build'
+            }
+        )
+    }
+
+    stage("打印消息") {
+        echo "${PROJECT_NAME}"
+    }
+
+}
